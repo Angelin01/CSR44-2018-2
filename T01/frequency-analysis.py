@@ -23,6 +23,7 @@ def analyseFrequency(message, chars):
 	print("Três mensagens mais provaveis:\n")
 	for char in ['a', 'e', 'o']:
 		key = (mostFrequent - chars.index(char)) % len(chars)
+		print("Possível chave: {} | Mensagem decriptada:".format(key))
 		print(decypher(message, key, chars) + '\n')
 
 def main():
