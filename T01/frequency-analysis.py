@@ -15,12 +15,17 @@ def decypher(message, key, chars):
 def analyseFrequency(message, chars):
 	# Three highest frequencies are "a", "e" and "o", try those
 	counts = [0] * len(chars)
+	total = 0
 	for char in message:
 		if char in chars:
+			total = total + 1
 			counts[chars.index(char)] = counts[chars.index(char)] + 1
+			
+	for char,count in zip(chars,counts):
+		print("{}:{:.2f}%".format(char, count*100/total), end='  ')
 		
 	mostFrequent = counts.index(max(counts))
-	print("Três mensagens mais provaveis:\n")
+	print("\nTrês mensagens mais provaveis:\n")
 	for char in ['a', 'e', 'o']:
 		key = (mostFrequent - chars.index(char)) % len(chars)
 		print("Possível chave: {} | Mensagem decriptada:".format(key))
