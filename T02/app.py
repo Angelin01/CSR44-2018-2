@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from hashlib import sha256
 from time import time
-
+from getpass import getpass
 
 def main():
 	while True:
@@ -14,11 +14,13 @@ def main():
 			for user in users.readlines():
 				user = user.strip('\n').split(',')
 				if user[0] == username:
-					seed = user[2]
+					seedSalt = user[4]
 
-		if not seed:
+		if not seedSalt:
 			print("Usuário não existe!")
 			continue
+		seed = sha256(getpass("Digite sua senha seed: ").strip('\n').encode('utf-8') + seedSalt.encode('utf-8')).hexdigest()
+
 		print("Os tokens para este minuto são:")
 		minSeedPass = seed + str(int(time()) - int(time()) % 60)
 		tokens = [sha256(minSeedPass.encode('utf-8')).hexdigest()]

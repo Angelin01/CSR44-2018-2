@@ -8,25 +8,26 @@ import os
 
 def registerNewUser():
 	# Gerar sal aleatorio de tamanho 4
-	salt = ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(4)).encode('utf-8')
+	saltSeed = ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(4)).encode('utf-8')
+	saltMain = ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(4)).encode('utf-8')
 
 	username = input("Digite o username do novo usuário: ").strip('\n')
-	password = sha256(getpass("Digite a senha do novo usuário: ").strip('\n').encode('utf-8') + salt).hexdigest()
-	passwordConfirm = sha256(getpass("Digite novamente a mesma senha: ").strip('\n').encode('utf-8') + salt).hexdigest()
+	password = sha256(getpass("Digite a senha do novo usuário: ").strip('\n').encode('utf-8') + saltMain).hexdigest()
+	passwordConfirm = sha256(getpass("Digite novamente a mesma senha: ").strip('\n').encode('utf-8') + saltMain).hexdigest()
 
 	if password != passwordConfirm:
 		print("*** Senhas não batem, tente novamente ***\n")
 		return
 		
-	seedPassword = sha256(getpass("Digite a senha semente: ").strip('\n').encode('utf-8') + salt).hexdigest()
-	seedPasswordConfirm = sha256(getpass("Digite novamente a senha semente: ").strip('\n').encode('utf-8') + salt).hexdigest()
+	seedPassword = sha256(getpass("Digite a senha semente: ").strip('\n').encode('utf-8') + saltSeed).hexdigest()
+	seedPasswordConfirm = sha256(getpass("Digite novamente a senha semente: ").strip('\n').encode('utf-8') + saltSeed).hexdigest()
 
 	if seedPassword != seedPasswordConfirm:
 		print("*** Senhas semente não batem, tente novamente ***\n")
 		return
 
 	with open('users', 'a') as users:
-		users.write('{},{},{},{}\n'.format(username, password, seedPassword, salt.decode('utf-8')))
+		users.write('{},{},{},{},{}\n'.format(username, password, seedPassword, saltMain.decode('utf-8'), saltSeed.decode('utf-8')))
 		
 	print("")
 	
