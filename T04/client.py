@@ -16,14 +16,9 @@ def clientSocket(portToConnect):
 def main():
 	while True:
 		user = input("Type your username: ").strip('\n').encode('ascii')
-		key = getpass("Type your key: ").strip('\n').encode('ascii')
-
-		# DES keys have length 8
-		while len(key != 8):
-			print("Invalid key length, keys have 8 digits")
-			key = getpass("Type your key: ").strip('\n').encode('ascii')
+		# Get key, encode ascii, hash it with sha256, get the first 8 chars of the hex of the hash and encode that
+		key = sha256(getpass("Type your key: ").strip('\n').encode('ascii')).hexdigest()[:8].encode('ascii')
 		cypher = DES.new(key, DES.MODE_0FB)		
-		
 		resource = input("Type which resource you want to access: ").strip('\n').encode('ascii')
 
 		# Connect to AS
