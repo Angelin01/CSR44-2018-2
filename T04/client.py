@@ -15,13 +15,15 @@ def main():
 		resource = input("Type which resource you want to access: ").strip('\n').encode('ascii')
 
 		# Connect to AS on port 2222
-		sck = socket.create_connection(address=('localhost', 2222))
+		try:
+			sck = socket.create_connection(address=('localhost', 2222))
+		except socket.timeout:
+			print("AS appears to be down. Try again later.")
+			continue
+
 		rn1 = str(SystemRandom().randrange(10000)).encode('ascii')
 		T_R = str(int(time())).encode('ascii')
-		msgToSendAS = (user + b',' + 
-		               Kc.encrypt(resource + b',' + 
-		                          T_R + b',' +
-		                          rn1))
+		msgToSendAS = user + b',' + Kc.encrypt(b','.join([resource, T_R, rn1]))
 		
 		if __debug__:
 			print("Sending to AS:\n{}".format(msgToSendAS))
@@ -38,8 +40,8 @@ def main():
 		if __debug__:
 			print("AS answered:\n{}".format(answer))
 
-		info, T_c_tgs_key = answer.split(b',')
-		info = Kc.decrypt(info)
+		infoAS, T_c_tgs = answer.split(b',')
+		info = Kc.decrypt(infoAS)
 
 		# if the format is incorrect, abort
 		if info.count(b',') != 1:
@@ -51,11 +53,15 @@ def main():
 			continue
 
 		# Connect to TGS on port 3333
-		sck = socket.create_connection(address=('localhost', 3333))
+		try:
+			sck = socket.create_connection(address=('localhost', 3333))
+		except socket.timeout:
+			print("TGS appears to be down. Try again later.")
+			continue
+
 		rn2 = str(SystemRandom().randrange(10000)).encode('ascii')
 		K_c_tgs = pyDes.des(K_c_tgs_key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
-		msgToSendTGS = (K_c_tgs.encrypt(username + b',' + resource + b',' + T_R + b',' + rn2) + b',' +
-		                T_c_tgs_key)
+		msgToSendTGS = K_c_tgs.encrypt(b','.join([username, resource, T_R, rn2]) + b',' + T_c_tgs
 		
 		if __debug__:
 			print("Sending to TGS:\n{}".format(msgToSendTGS))
@@ -71,11 +77,55 @@ def main():
 		if __debug__:
 			print("TGS answered:\n{}".format(answer))
 
+		infoTGS, T_c_s = answer.split(b',')
+		info = K_c_tgs.decrypt(infoTGS)
+		
+		# if the format is incorrect, abort
+		if info.count(b',') != 2:
+			print("Something weird happened while decrypting, aborting")
+			continue
+		K_c_s_key, T_A, n2 = info.split(b',')
+		if rn2 != n2:
+			print("Something weird happened while decrypting, aborting")
+			continue
 
+		# Connect to resource on it's port (same as resource id)
+		try:
+			sck = socket.create_connection(address=('localhost', int(resource)))
+		except socket.timeout:
+			print("TGS appears to be down. Try again later.")
+			continue
 
+		rn3 = str(SystemRandom().randrange(10000)).encode('ascii')
+		K_c_s = pyDes.des(K_c_s_key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
+		msgToSendService = K_c_s.encrypt(b','.join([username, T_A, resource, rn3])) + b',' + T_c_s
+		
+		if __debug__:
+			print("Sending to Service:\n{}".format(msgToSendService))
 
+		sck.send(msgToSendService)
+		try:
+			answer = sck.recv(1024)
+		except socket.timeout:
+			print("Service didn't answer.\nAre you trying something fishy?")
+			sck.close()
+			continue
+		
+		infoService = K_c_s.decrypt(answer)
+		if infoService.count(b',') != 1:
+			print("Something weird happened while decrypting, aborting")
+			continue
+		answerService, n3 = infoService.split(b',')
 
-
+		if n3 != rn3:
+			print("Something weird happened while decrypting, aborting")
+			continue
+		
+		if answerService == b"OK":
+			print("* ============ *\n*** SUCCESS! ***\n* ============ *")
+			continue
+		else:
+			print("Authentication failure! Service did not recognize you!")
 
 if __name__ == "__main__":
 	main()
