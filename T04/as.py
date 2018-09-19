@@ -66,7 +66,10 @@ class ClientConn(threading.Thread):
 		if __debug__:
 			print("Answering to client:\n{}".format(msgToReturn))
 
-		self.conn.send(msgToReturn)
+		try:
+			self.conn.send(msgToReturn)
+		except BrokenPipeError:
+			pass
 		self.conn.close()
 		return
 
@@ -89,8 +92,6 @@ def main():
 
 	for entry in entries:
 		if entry.count(',') != 1:
-			print(entry)
-			print(entry.count(','))
 			print("'as.csv' format is incorrect, aborting")
 			return 1
 	
