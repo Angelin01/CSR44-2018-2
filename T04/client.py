@@ -61,7 +61,7 @@ def main():
 
 		rn2 = str(SystemRandom().randrange(10000)).encode('ascii')
 		K_c_tgs = pyDes.des(K_c_tgs_key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
-		msgToSendTGS = K_c_tgs.encrypt(b','.join([username, resource, T_R, rn2]) + b',' + T_c_tgs
+		msgToSendTGS = K_c_tgs.encrypt(b','.join([username, resource, T_R, rn2])) + b',' + T_c_tgs
 		
 		if __debug__:
 			print("Sending to TGS:\n{}".format(msgToSendTGS))
