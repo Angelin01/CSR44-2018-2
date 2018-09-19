@@ -55,7 +55,10 @@ class ClientConn(threading.Thread):
 			return
 		
 		service, T_R, n1 = decryptedInfo.split(b',')
-		K_c_tgs = bytes(SystemRandom().getrandbits(8) for i in range(8))
+		K_c_tgs = b','
+		while b',' in K_c_tgs:
+			K_c_tgs = bytes(SystemRandom().getrandbits(8) for i in range(8))
+
 		print(K_c_tgs)
 		T_c_tgs = self.K_tgs.encrypt(b','.join([ID_C.encode('ascii'), T_R, K_c_tgs]))
 		msgToReturn = Kc.encrypt(b','.join([K_c_tgs, n1])) + b',' + T_c_tgs
