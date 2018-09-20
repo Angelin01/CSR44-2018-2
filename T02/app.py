@@ -6,7 +6,7 @@ from getpass import getpass
 def main():
 	while True:
 		username = input("\nDigite seu usuário: ")
-		seed = None
+		mainSalt = None
 
 		with open('users', 'a+'):
 			pass
@@ -14,12 +14,18 @@ def main():
 			for user in users.readlines():
 				user = user.strip('\n').split(',')
 				if user[0] == username:
-					seedSalt = user[4]
+					mainSalt = user[3]
+					seed = user[2]
+					localPass = user[1]
 
-		if not seedSalt:
+		if not mainSalt:
 			print("Usuário não existe!")
 			continue
-		seed = sha256(getpass("Digite sua senha seed: ").strip('\n').encode('utf-8') + seedSalt.encode('utf-8')).hexdigest()
+		mainPass = sha256(getpass("Digite sua senha local: ").strip('\n').encode('utf-8') + mainSalt.encode('utf-8')).hexdigest()
+
+		if mainPass != user[1]:
+			print("Senha inválida!")
+			continue
 
 		print("Os tokens para este minuto são:")
 		minSeedPass = seed + str(int(time()) - int(time()) % 60)

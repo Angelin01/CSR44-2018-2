@@ -12,7 +12,7 @@ def registerNewUser():
 	saltMain = ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(4)).encode('utf-8')
 
 	username = input("Digite o username do novo usuário: ").strip('\n')
-	password = sha256(getpass("Digite a senha do novo usuário: ").strip('\n').encode('utf-8') + saltMain).hexdigest()
+	password = sha256(getpass("Digite a senha local do novo usuário: ").strip('\n').encode('utf-8') + saltMain).hexdigest()
 	passwordConfirm = sha256(getpass("Digite novamente a mesma senha: ").strip('\n').encode('utf-8') + saltMain).hexdigest()
 
 	if password != passwordConfirm:
@@ -46,11 +46,6 @@ def authenticate():
 			authInfo = user
 	if not authInfo:
 		print("Usuário inválido!\n")
-		return
-	
-	password = sha256(getpass("Digite sua senha: ").strip('\n').encode('utf-8') + authInfo[3].encode('utf-8')).hexdigest()
-	if password != authInfo[1]:
-		print("Senha incorreta!\n")
 		return
 
 	# Ler tokens invalidos para esse usuario
