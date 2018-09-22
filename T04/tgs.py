@@ -31,7 +31,7 @@ class ClientConn(threading.Thread):
 		if msg.count(b',') != 1:
 			self.conn.close()
 			if __debug__:
-				print("Client inital message format incorrect, aborting connection")
+				print("Client initial message format incorrect, aborting connection")
 			return
 
 		if __debug__:

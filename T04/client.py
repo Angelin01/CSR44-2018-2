@@ -127,7 +127,7 @@ def main():
 
 		rn3 = str(SystemRandom().randrange(10000)).encode('ascii')
 		K_c_s = pyDes.des(K_c_s_key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
-		msgToSendService = b64encode(K_c_s.encrypt(b','.join([username, T_A, resource, rn3]))) + b',' + T_c_s
+		msgToSendService = b64encode(K_c_s.encrypt(b','.join([user, T_A, resource, rn3]))) + b',' + T_c_s
 
 		if __debug__:
 			print("Sending to Service:\n{}".format(msgToSendService))
