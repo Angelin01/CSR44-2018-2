@@ -89,7 +89,7 @@ class ClientConn(threading.Thread):
 			K_c_s = bytes(SystemRandom().getrandbits(8) for i in range(8))
 
 		T_c_s = K_s.encrypt(b','.join([ID_C1, T_R1, K_c_s]))
-		toSend = K_c_tgs.encrypt(b','.join[K_c_s, T_R1, n2]) + b',' + T_c_s
+		msgToReturn = K_c_tgs.encrypt(b','.join([K_c_s, T_R1, n2])) + b',' + T_c_s
 
 		if __debug__:
 			print("Answering to client:\n{}".format(msgToReturn))
@@ -98,7 +98,7 @@ class ClientConn(threading.Thread):
 		# Sending message to client
 		# ----------------------------------------------------------------------
 		try:
-			self.conn.send(toSend)
+			self.conn.send(msgToReturn)
 		except BrokenPipeError:
 			pass
 		self.conn.close()
@@ -135,8 +135,8 @@ def main():
 	resources = [entry.split(',') for entry in entries]
 
 	if __debug__:
-		print("Clients list:")
-		print(clients)
+		print("Resources list:")
+		print(resources)
 
 	# --------------------------------------------------------------------------
 	# Creating socket
