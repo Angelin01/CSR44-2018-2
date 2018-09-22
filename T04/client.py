@@ -17,7 +17,7 @@ def main():
 		# Gathering user input
 		# ----------------------------------------------------------------------
 
-		user = input("Type your username: ").strip('\n').encode('ascii')
+		user = input("\n\nType your username: ").strip('\n').encode('ascii')
 		# Get key, encode ascii, hash it with sha256, get the first 8 chars of the hex of the hash and encode that
 		key = sha256(getpass("Type your key: ").strip('\n').encode('ascii')).hexdigest()[:8].encode('ascii')
 		Kc = pyDes.des(key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
@@ -55,7 +55,7 @@ def main():
 		sck.close()
 
 		if __debug__:
-			print("AS answered:\n{}".format(answer))
+			print("AS answered:\n{}\n".format(answer))
 
 		infoAS, T_c_tgs = answer.split(b',')
 		info = Kc.decrypt(b64decode(infoAS))
@@ -100,7 +100,7 @@ def main():
 			continue
 
 		if __debug__:
-			print("TGS answered:\n{}".format(answer))
+			print("TGS answered:\n{}\n".format(answer))
 
 		infoTGS, T_c_s = answer.split(b',')
 		info = K_c_tgs.decrypt(b64decode(infoTGS))
@@ -144,6 +144,9 @@ def main():
 			sck.close()
 			continue
 
+		if __debug__:
+			print("Service answered:\n{}\n".format(answer))
+
 		infoService = K_c_s.decrypt(b64decode(answer))
 		if infoService.count(b',') != 1:
 			print("Something weird happened while decrypting, aborting")
@@ -158,8 +161,10 @@ def main():
 		# Finishing
 		# ----------------------------------------------------------------------
 
+
+
 		if answerService == b"OK":
-			print("* ============ *\n*** SUCCESS! ***\n* ============ *")
+			print("\n* ============ *\n*** SUCCESS! ***\n* ============ *\n")
 			continue
 		else:
 			print("Authentication failure! Service did not recognize you!")

@@ -36,7 +36,7 @@ class ClientConn(threading.Thread):
 			return
 
 		if __debug__:
-			print("Received message is:\n{}".format(msg))
+			print("\nReceived message is:\n{}".format(msg))
 
 		# ----------------------------------------------------------------------
 		# Identify the client

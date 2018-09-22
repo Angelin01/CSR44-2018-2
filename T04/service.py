@@ -34,7 +34,7 @@ class ClientConn(threading.Thread):
 			return
 
 		if __debug__:
-			print("Received message is:\n{}".format(msg))
+			print("\nReceived message is:\n{}".format(msg))
 
 		# ----------------------------------------------------------------------
 		# Parse received info
@@ -43,14 +43,15 @@ class ClientConn(threading.Thread):
 		info = b64decode(info)
 		T_c_s = b64decode(T_c_s)
 
+		T_c_s_info = self.K_s.decrypt(T_c_s)
 		# If format is incorrect, just ignore
-		if T_c_s.count(b',') != 2:
+		if T_c_s_info.count(b',') != 2:
 			self.conn.close()
 			if __debug__:
-				print("Client inital message format incorrect, aborting connection")
+				print("Client T_c_s message format incorrect, aborting connection")
 			return
 
-		ID_C1, T_R1, K_c_s_key = self.K_s.decrypt(T_c_s).split(b',')
+		ID_C1, T_R1, K_c_s_key = T_c_s_info.split(b',')
 		K_c_s = pyDes.des(K_c_s_key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
 		dInfo = K_c_s.decrypt(info)
 
@@ -86,7 +87,7 @@ class ClientConn(threading.Thread):
 		# ----------------------------------------------------------------------
 		# Craft message to return to client
 		# ----------------------------------------------------------------------
-		msgToReturn = b64encode(K_c_s.encrypt(b','.join[b"OK", n3]))
+		msgToReturn = b64encode(K_c_s.encrypt(b','.join([b"OK", n3])))
 
 		if __debug__:
 			print("Answering to client:\n{}".format(msgToReturn))
