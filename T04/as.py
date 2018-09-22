@@ -62,7 +62,7 @@ class ClientConn(threading.Thread):
 		decryptedInfo = Kc.decrypt(info)
 
 		if decryptedInfo.count(b',') != 2:
-			conn.close()
+			self.conn.close()
 			if __debug__:
 				print("Client post decrypt message format incorrect, aborting connection")
 			return
@@ -70,7 +70,7 @@ class ClientConn(threading.Thread):
 		service, T_R, n1 = decryptedInfo.split(b',')
 
 		# ----------------------------------------------------------------------
-		# Generate random ticket for TGS
+		# Generate random key for TGS
 		# ----------------------------------------------------------------------
 		K_c_tgs = bytes(SystemRandom().getrandbits(8) for i in range(8))
 		while b',' in K_c_tgs:

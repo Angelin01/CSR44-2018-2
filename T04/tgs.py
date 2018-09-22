@@ -14,6 +14,96 @@ class ClientConn(threading.Thread):
 		self.K_tgs = K_tgs
 		super().__init__()
 
+	def run(self):
+		# ----------------------------------------------------------------------
+		# Get message from client
+		# ----------------------------------------------------------------------
+		try:
+			msg = self.conn.recv(1024)
+		except socket.timeout:
+			self.conn.close()
+			if __debug__:
+				print("Client didn't send anything, aborting connection")
+			return
+
+			# If format is incorrect, just ignore
+		if msg.count(b',') != 1:
+			self.conn.close()
+			if __debug__:
+				print("Client inital message format incorrect, aborting connection")
+			return
+
+		if __debug__:
+				print("Received message is:\n{}".format(msg))
+
+		# ----------------------------------------------------------------------
+		# Decrypt and verify the message from the client
+		# ----------------------------------------------------------------------
+		# Get key from AS
+		info, T_c_tgs = msg.split(b',')
+		ID_C1, T_R1, K_c_tgs_key = self.K_tgs.decrypt(T_c_tgs).split(b',')
+		K_c_tgs = pyDes.des(K_c_tgs_key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
+
+		# Get info from client
+		dInfo = K_c_tgs.decrypt(info)
+		if dInfo.count(b',') != 3:
+			self.conn.close()
+			if __debug__:
+				print("Client post decrypt message format incorrect, aborting connection")
+			return
+
+		# Verify info gotten from client
+		ID_C2, service, T_R2, n2 = dInfo.split(b',')
+		if ID_C1 != ID_C2:
+			self.conn.close()
+			if __debug__:
+				print("Client identification failed, aborting connection")
+			return
+
+		if T_R1 != T_R2:
+			self.conn.close()
+			if __debug__:
+				print("Client timestamp check failed, aborting connection")
+			return
+
+		# Verify the resource
+		wantedResource = None
+		for resource in self.resources:
+			if service == resource[0].encode('ascii'):
+				wantedResource = resource
+
+		if not wantedResource:
+			self.conn.close()
+			if __debug__:
+				print("Requested resource doesn't exist, aborting connection")
+			return
+
+		# ----------------------------------------------------------------------
+		# Craft message to send back to client
+		# ----------------------------------------------------------------------
+		K_s = pyDes.des(wantedResource[1][:8], pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
+
+		# Generate random ticket for TGS
+		K_c_s = bytes(SystemRandom().getrandbits(8) for i in range(8))
+		while b',' in K_c_s:
+			K_c_s = bytes(SystemRandom().getrandbits(8) for i in range(8))
+
+		T_c_s = K_s.encrypt(b','.join([ID_C1, T_R1, K_c_s]))
+		toSend = K_c_tgs.encrypt(b','.join[K_c_s, T_R1, n2]) + b',' + T_c_s
+
+		if __debug__:
+			print("Answering to client:\n{}".format(msgToReturn))
+
+		# ----------------------------------------------------------------------
+		# Sending message to client
+		# ----------------------------------------------------------------------
+		try:
+			self.conn.send(toSend)
+		except BrokenPipeError:
+			pass
+		self.conn.close()
+		return
+
 def main():
 	# --------------------------------------------------------------------------
 	# Reading clients list
