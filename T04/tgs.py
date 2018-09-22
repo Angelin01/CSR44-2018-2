@@ -2,7 +2,8 @@ import socket
 import pyDes
 import threading
 from random import SystemRandom
-from hashlib import sha256
+from base64 import b64encode
+from base64 import b64decode
 
 TGS_PORT = 3333
 
@@ -41,6 +42,8 @@ class ClientConn(threading.Thread):
 		# ----------------------------------------------------------------------
 		# Get key from AS
 		info, T_c_tgs = msg.split(b',')
+		info = b64decode(info)
+		T_c_tgs = b64decode(T_c_tgs)
 		ID_C1, T_R1, K_c_tgs_key = self.K_tgs.decrypt(T_c_tgs).split(b',')
 		K_c_tgs = pyDes.des(K_c_tgs_key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
 
@@ -88,8 +91,8 @@ class ClientConn(threading.Thread):
 		while b',' in K_c_s:
 			K_c_s = bytes(SystemRandom().getrandbits(8) for i in range(8))
 
-		T_c_s = K_s.encrypt(b','.join([ID_C1, T_R1, K_c_s]))
-		msgToReturn = K_c_tgs.encrypt(b','.join([K_c_s, T_R1, n2])) + b',' + T_c_s
+		T_c_s = b64encode(K_s.encrypt(b','.join([ID_C1, T_R1, K_c_s])))
+		msgToReturn = b64encode(K_c_tgs.encrypt(b','.join([K_c_s, T_R1, n2]))) + b',' + T_c_s
 
 		if __debug__:
 			print("Answering to client:\n{}".format(msgToReturn))

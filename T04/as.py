@@ -3,6 +3,8 @@ import pyDes
 import threading
 from random import SystemRandom
 from hashlib import sha256
+from base64 import b64encode
+from base64 import b64decode
 
 AS_PORT = 2222
 
@@ -40,6 +42,7 @@ class ClientConn(threading.Thread):
 		# Identify the client
 		# ----------------------------------------------------------------------
 		ID_C, info = msg.split(b',')
+		info = b64decode(info)
 		ID_C = ID_C.decode('ascii')
 
 		client = None
@@ -79,8 +82,8 @@ class ClientConn(threading.Thread):
 		# ----------------------------------------------------------------------
 		# Preparing message to return to client
 		# ----------------------------------------------------------------------
-		T_c_tgs = self.K_tgs.encrypt(b','.join([ID_C.encode('ascii'), T_R, K_c_tgs]))
-		msgToReturn = Kc.encrypt(b','.join([K_c_tgs, n1])) + b',' + T_c_tgs
+		T_c_tgs = b64encode(self.K_tgs.encrypt(b','.join([ID_C.encode('ascii'), T_R, K_c_tgs])))
+		msgToReturn = b64encode(Kc.encrypt(b','.join([K_c_tgs, n1]))) + b',' + T_c_tgs
 
 		if __debug__:
 			print("Answering to client:\n{}".format(msgToReturn))

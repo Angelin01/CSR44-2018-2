@@ -4,6 +4,8 @@ from hashlib import sha256
 from time import time
 from getpass import getpass
 from random import SystemRandom  # Crypto secure random
+from base64 import b64encode
+from base64 import b64decode
 
 AS_PORT = 2222
 TGS_PORT = 3333
@@ -34,7 +36,7 @@ def main():
 
 		rn1 = str(SystemRandom().randrange(10000)).encode('ascii')
 		T_R = str(int(time())).encode('ascii')
-		msgToSendAS = user + b',' + Kc.encrypt(b','.join([resource, T_R, rn1]))
+		msgToSendAS = user + b',' + b64encode(Kc.encrypt(b','.join([resource, T_R, rn1])))
 
 		if __debug__:
 			print("Sending to AS:\n{}".format(msgToSendAS))
@@ -56,7 +58,7 @@ def main():
 			print("AS answered:\n{}".format(answer))
 
 		infoAS, T_c_tgs = answer.split(b',')
-		info = Kc.decrypt(infoAS)
+		info = Kc.decrypt(b64decode(infoAS))
 
 		# if the format is incorrect, abort
 		if info.count(b',') != 1:
@@ -80,7 +82,7 @@ def main():
 
 		rn2 = str(SystemRandom().randrange(10000)).encode('ascii')
 		K_c_tgs = pyDes.des(K_c_tgs_key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
-		msgToSendTGS = K_c_tgs.encrypt(b','.join([user, resource, T_R, rn2])) + b',' + T_c_tgs
+		msgToSendTGS = b64encode(K_c_tgs.encrypt(b','.join([user, resource, T_R, rn2]))) + b',' + T_c_tgs
 
 		if __debug__:
 			print("Sending to TGS:\n{}".format(msgToSendTGS))
@@ -101,7 +103,7 @@ def main():
 			print("TGS answered:\n{}".format(answer))
 
 		infoTGS, T_c_s = answer.split(b',')
-		info = K_c_tgs.decrypt(infoTGS)
+		info = K_c_tgs.decrypt(b64decode(infoTGS))
 
 		# if the format is incorrect, abort
 		if info.count(b',') != 2:
@@ -125,7 +127,7 @@ def main():
 
 		rn3 = str(SystemRandom().randrange(10000)).encode('ascii')
 		K_c_s = pyDes.des(K_c_s_key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_PKCS5)
-		msgToSendService = K_c_s.encrypt(b','.join([username, T_A, resource, rn3])) + b',' + T_c_s
+		msgToSendService = b64encode(K_c_s.encrypt(b','.join([username, T_A, resource, rn3]))) + b',' + T_c_s
 
 		if __debug__:
 			print("Sending to Service:\n{}".format(msgToSendService))
@@ -142,7 +144,7 @@ def main():
 			sck.close()
 			continue
 
-		infoService = K_c_s.decrypt(answer)
+		infoService = K_c_s.decrypt(b64decode(answer))
 		if infoService.count(b',') != 1:
 			print("Something weird happened while decrypting, aborting")
 			continue
