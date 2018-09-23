@@ -76,8 +76,6 @@ class ClientConn(threading.Thread):
 		# Generate random key for TGS
 		# ----------------------------------------------------------------------
 		K_c_tgs = bytes(SystemRandom().getrandbits(8) for i in range(8))
-		while b',' in K_c_tgs:
-			K_c_tgs = bytes(SystemRandom().getrandbits(8) for i in range(8))
 
 		# ----------------------------------------------------------------------
 		# Preparing message to return to client

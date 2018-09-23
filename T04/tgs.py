@@ -88,8 +88,6 @@ class ClientConn(threading.Thread):
 
 		# Generate random ticket for TGS
 		K_c_s = bytes(SystemRandom().getrandbits(8) for i in range(8))
-		while b',' in K_c_s:
-			K_c_s = bytes(SystemRandom().getrandbits(8) for i in range(8))
 
 		T_c_s = b64encode(K_s.encrypt(b','.join([ID_C1, T_R1, K_c_s])))
 		msgToReturn = b64encode(K_c_tgs.encrypt(b','.join([K_c_s, T_R1, n2]))) + b',' + T_c_s
