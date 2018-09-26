@@ -111,13 +111,17 @@ def main(id):
 	sck.listen()
 
 	while True:
-		# On receiving a new connection, create a thread and return to listening
-		conn, address = sck.accept()
+		try:
+			# On receiving a new connection, create a thread and return to listening
+			conn, address = sck.accept()
 
-		if __debug__:
-			print("Received connection from {}".format(address))
+			if __debug__:
+				print("Received connection from {}".format(address))
 
-		ClientConn(conn, id.encode('ascii'), K_s).start()
+			ClientConn(conn, id.encode('ascii'), K_s).start()
+		except KeyboardInterrupt:
+			print("\n")
+			break
 
 
 if __name__ == "__main__":
