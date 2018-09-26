@@ -71,6 +71,7 @@ class ClientConn(threading.Thread):
 				print("Client timestamp check failed, aborting connection")
 			return
 			
+		# Verify that time is ok
 		if int(time() - int(T_R1.decode('ascii')) ) > 60:
 			self.conn.close()
 			if __debug__:

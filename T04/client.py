@@ -69,6 +69,8 @@ def main():
 			if n1 != rn1:
 				print("Something weird happened while decrypting, aborting")
 				continue
+				
+			input("Everything ok with AS...\nPress any key to connect to TGS")
 
 			# ----------------------------------------------------------------------
 			# Prepare message to send TGS
@@ -114,6 +116,8 @@ def main():
 			if rn2 != n2:
 				print("Something weird happened while decrypting, aborting")
 				continue
+				
+			input("Everything ok with TGS...\nPress any key to connect to resource")
 
 			# ----------------------------------------------------------------------
 			# Prepare message to send resource
