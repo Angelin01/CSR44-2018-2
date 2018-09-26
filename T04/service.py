@@ -1,10 +1,12 @@
 import socket
 import threading
 import pyDes
+from time impor time
 from hashlib import sha256
 from getpass import getpass
 from base64 import b64encode
 from base64 import b64decode
+
 
 class ClientConn(threading.Thread):
 	def __init__(self, conn, id, K_s):
@@ -76,6 +78,13 @@ class ClientConn(threading.Thread):
 			self.conn.close()
 			if __debug__:
 				print("Timestamp doesn't match, aborting connection")
+			return
+			
+		# Verify that time is ok
+		if int(time() - int(T_R1.decode('ascii')) ) > 60:
+			self.conn.close()
+			if __debug__:
+				print("Client ticket expired, aborting connection")
 			return
 
 		if self.id != S_R:

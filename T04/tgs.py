@@ -1,9 +1,11 @@
 import socket
 import pyDes
 import threading
+from time import time
 from random import SystemRandom
 from base64 import b64encode
 from base64 import b64decode
+
 
 TGS_PORT = 3333
 
@@ -67,6 +69,12 @@ class ClientConn(threading.Thread):
 			self.conn.close()
 			if __debug__:
 				print("Client timestamp check failed, aborting connection")
+			return
+			
+		if int(time() - int(T_R1.decode('ascii')) ) > 60:
+			self.conn.close()
+			if __debug__:
+				print("Client ticket expired, aborting connection")
 			return
 
 		# Verify the resource
