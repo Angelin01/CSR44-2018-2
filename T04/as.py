@@ -148,6 +148,7 @@ def main():
 
 			ClientConn(conn, clients, K_tgs).start()
 		except KeyboardInterrupt:
+			sck.close()
 			print("\n")
 			break
 

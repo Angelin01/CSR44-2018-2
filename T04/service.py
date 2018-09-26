@@ -1,7 +1,7 @@
 import socket
 import threading
 import pyDes
-from time impor time
+from time import time
 from hashlib import sha256
 from getpass import getpass
 from base64 import b64encode
@@ -129,6 +129,7 @@ def main(id):
 
 			ClientConn(conn, id.encode('ascii'), K_s).start()
 		except KeyboardInterrupt:
+			sck.close()
 			print("\n")
 			break
 

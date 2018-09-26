@@ -57,6 +57,11 @@ def main():
 
 			if __debug__:
 				print("AS answered:\n{}\n".format(answer))
+				
+			if not answer:
+				print("AS server didn't answer.\nDid you input your username and key correctly?")
+				sck.close()
+				continue
 
 			infoAS, T_c_tgs = answer.split(b',')
 			info = Kc.decrypt(b64decode(infoAS))
@@ -104,6 +109,11 @@ def main():
 
 			if __debug__:
 				print("TGS answered:\n{}\n".format(answer))
+				
+			if not answer:
+				print("TGS server didn't answer.\nDid you input a valid resource?")
+				sck.close()
+				continue
 
 			infoTGS, T_c_s = answer.split(b',')
 			info = K_c_tgs.decrypt(b64decode(infoTGS))
