@@ -8,14 +8,18 @@ def answer404(conn):
 	conn.send(("HTTP/1.1 404 Not Found\r\n" +
 	           datetime.utcnow().strftime("Date: %a, %d %b %Y %H:%M:%S") + " GMT\r\n" +
 	           "Server: AngelinProxy/1.0\r\n" +
-	           "\r\n").encode('ISO-8859-1'))
+	           "Content-Length: 73\r\n" +
+	           "\r\n" +
+	           "<html><body><h2>Erro 404</h2><h1>Página não encontrada</h1></body></html>").encode('ISO-8859-1'))
 
 
 def answer400(conn):
 	conn.send(("HTTP/1.1 400 Bad Request\r\n" +
 	           datetime.utcnow().strftime("Date: %a, %d %b %Y %H:%M:%S") + " GMT\r\n" +
-	           "Server: AngelinProxy/1.0\r\n" +
-	           "\r\n").encode('ISO-8859-1'))
+	           "Server: AngelinProxy/1.0\r\n" "Content-Type: text/html\r\n" +
+	           "Content-Length: 75\r\n" +
+	           "\r\n" +
+	           "<html><body><h2>Erro 400</h2><h1>Requisição Mal Formada!</h1></body></html>").encode('ISO-8859-1'))
 
 
 def answer403(conn):
@@ -23,9 +27,9 @@ def answer403(conn):
 	           datetime.utcnow().strftime("Date: %a, %d %b %Y %H:%M:%S") + " GMT\r\n" +
 	           "Server: AngelinProxy/1.0\r\n" +
 	           "Content-Type: text/html\r\n" +
-	           "Content-Length: 52\r\n" +
+	           "Content-Length: 69\r\n" +
 	           "\r\n" +
-	           "<html><body><h1>Acesso Bloqueado!</h1></body></html>").encode('ISO-8859-1'))
+	           "<html><body><h2>Erro 403</h2><h1>Acesso Bloqueado!</h1></body></html>").encode('ISO-8859-1'))
 
 def proxy_connect(conn, addr):
 	client_request = conn.recv(8192)
@@ -35,17 +39,14 @@ def proxy_connect(conn, addr):
 		conn.close()
 		return
 
-	if b"teste" in client_request:
-		answer404(conn)
-		conn.close()
-		return
-
 	url = client_request.split(b' ', 2)[1].split(b'/', 3)[2]
 
 	try:
 		server_ip = socket.gethostbyname(url.decode('ISO-8859-1'))
 	except socket.gaierror:
-		pass
+		answer404(conn)
+		conn.close()
+		return
 
 	print("New connection:\nClient: {}\nServer: Host: {} | IP: {}".format(addr, url.decode('ISO-8859-1'), server_ip))
 
@@ -58,7 +59,8 @@ def proxy_connect(conn, addr):
 		except socket.timeout:
 			conn.send(answer)
 			conn.close()
-			break
+			server_conn.close()
+			return
 
 		if(len(answer) > 0):
 			conn.send(answer)
