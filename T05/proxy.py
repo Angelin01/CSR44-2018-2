@@ -24,6 +24,10 @@ class AngelinProxy(Thread):
 	def __init__(self, conn, addr):
 		self.conn = conn
 		self.addr = addr
+		self.client_headers = {}
+		self.client_request = None
+		self.server_headers = {}
+		self.server_response = None
 		super().__init__()
 
 	@staticmethod
@@ -31,42 +35,94 @@ class AngelinProxy(Thread):
 		error = AngelinProxy._error_values.get(code) or AngelinProxy._error_values.get(418)
 		return AngelinProxy._basic_error_format.format(error[0], error[1], error[2]).encode('ISO-8859-1')
 
+	def parse_headers(self, message, is_client):
+		fields = message.decode('ISO-8859-1').split('\r\n\r\n')[0].split('\r\n')
+		output = self.client_headers if is_client else self.server_headers
+		output["Request"] = fields[0]
+		fields = fields[1:]
+		for field in fields:
+			key, value = field.split(':', 1)
+			output[key] = value
+
 
 	def run(self):
-		client_request = self.conn.recv(8192)
-
-		if b"monitorando" in client_request:
-			self.conn.send(AngelinProxy._build_error(403))
-			self.conn.close()
-			return
-
-		url = client_request.split(b' ', 2)[1].split(b'/', 3)[2]
-
 		try:
-			server_ip = socket.gethostbyname(url.decode('ISO-8859-1'))
-		except socket.gaierror:
-			self.conn.send(AngelinProxy._build_error(404))
-			self.conn.close()
-			return
+			self.client_request = self.conn.recv(8192)
 
-		print("New connection:\nClient: {}\nServer: Host: {} | IP: {}".format(self.addr, url.decode('ISO-8859-1'), server_ip))
-
-		server_conn = socket.create_connection((url.decode('ISO-8859-1'), 80))
-		#server_conn.settimeout(5)
-		server_conn.send(client_request)
-		while True:
-			try:
-				answer = server_conn.recv(8192)
-			except socket.timeout:
-				self.conn.send(answer)
+			# ---------------------------------------------- #
+			# Check for "monitorando" to display access blocked
+			if b"monitorando" in self.client_request:
+				self.conn.send(AngelinProxy._build_error(403))
 				self.conn.close()
-				server_conn.close()
+				return
+			# ---------------------------------------------- #
+
+			# ---------------------------------------------- #
+			# Find and connect to requested host
+			try:
+				self.parse_headers(self.client_request, True)
+			except ValueError:  # Malformed request
+				self.conn.send(AngelinProxy._build_error(400))
+				self.conn.close()
 				return
 
-			if(len(answer) > 0):
-				self.conn.send(answer)
+			self.client_headers["Host"] = self.client_headers["Host"].strip()
+			if ':' in self.client_headers["Host"]:
+				url, port = self.client_headers["Host"].rsplit(':', 1)
+				port = int(port)
 			else:
-				break
+				url = self.client_headers["Host"]
+				port = 443 if "https" in self.client_headers["Request"] else 80
 
-		server_conn.close()
-		self.conn.close()
+			try:
+				server_ip = socket.gethostbyname(url)
+				server_conn = socket.create_connection((url, 80), timeout=5)
+			except socket.timeout:
+				self.conn.send(AngelinProxy._build_error(504))
+				self.conn.close()
+				return
+			except socket.gaierror:
+				self.conn.send(AngelinProxy._build_error(404))
+				self.conn.close()
+				return
+
+			print("New connection:\nClient: {}\nServer: Host: {} | IP: {}".format(self.addr, url, server_ip))
+			# ---------------------------------------------- #
+			# Talk with server
+			try:
+				server_conn.send(self.client_request)
+			except socket.timeout:
+				self.conn.send(AngelinProxy._build_error(504))
+				self.conn.close()
+				return
+
+			while True:
+				try:
+					answer = server_conn.recv(8192)
+				except socket.timeout:
+					self.conn.send(answer)
+					self.conn.close()
+					server_conn.close()
+					return
+
+				if(len(answer) > 0):
+					self.conn.send(answer)
+				else:
+					break
+
+			server_conn.close()
+			self.conn.close()
+
+			return
+
+		except Exception as e:
+			# Oh no, something weird happened
+			print("Error, stopping")
+			print("Args:", e.args)
+			print(e)
+
+			if self.client_request:
+				self.conn.send(AngelinProxy._build_error(418))
+				self.conn.close()
+
+			return

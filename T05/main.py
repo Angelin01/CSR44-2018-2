@@ -1,5 +1,6 @@
 import socket
 import signal
+from sys import exit
 from proxy import AngelinProxy
 
 
@@ -8,6 +9,7 @@ def main():
 	sck = socket.socket()
 
 	def stop_handler(s, f):
+		nonlocal stop
 		stop = True
 		sck.close()
 
@@ -21,6 +23,8 @@ def main():
 		conn, addr = sck.accept()
 		AngelinProxy(conn, addr).start()
 
+	return 0
+
 
 if __name__ == "__main__":
-	main()
+	exit(main())
