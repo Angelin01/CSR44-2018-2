@@ -99,10 +99,11 @@ class AngelinProxy(Thread):
 				self.conn.close()
 				return
 
+			# Keep looping until we find the end of the headers
 			data = b""
-			while True:
+			while b"\r\n\r\n" not in data:
 				try:
-					data += server_conn.recv(64)
+					data += server_conn.recv(128)
 				except socket.timeout:
 					pass
 
@@ -110,33 +111,30 @@ class AngelinProxy(Thread):
 				if not data:
 					break
 
-				# Keep looping until we find the end of the headers
-				if b"\r\n\r\n" not in data:
-					continue
+			if not data:
+				server_conn.close()
+				self.conn.close()
+				return
 
-				headers, extra = data.split(b"\r\n\r\n", 1)
-				self.parse_headers(headers, False)
+			headers, extra = data.split(b"\r\n\r\n", 1)
+			self.parse_headers(headers, False)
 
-				try:
-					if "Content-Length" in self.server_headers:
-						data += server_conn.recv(int(self.server_headers["Content-Length"]) - len(extra))
-					else:
-						while True:
-							buffer = server_conn.recv(64)
-							if not buffer:
-								break
-							data += buffer
-				except socket.timeout:
-					pass
+			try:
+				if "Content-Length" in self.server_headers:
+					data += server_conn.recv(int(self.server_headers["Content-Length"]) - len(extra))
+					self.conn.sendall(data)
+				else:
+					while True:
+						buffer = server_conn.recv(4096)
+						if not buffer:
+							break
+						self.conn.sendall(buffer)
 
-				print("Sending to client", len(data), "bytes")
-				print(data)
-				self.conn.sendall(data)
-				data = b""
+			except socket.timeout:
+				pass
 
 			server_conn.close()
 			self.conn.close()
-
 			return
 
 		except Exception as e:
