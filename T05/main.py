@@ -21,7 +21,7 @@ def main():
 
 	while not stop:
 		conn, addr = sck.accept()
-		AngelinProxy(conn, addr).start()
+		AngelinProxy(conn, addr, 4096).start()
 
 	return 0
 

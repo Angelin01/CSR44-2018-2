@@ -18,16 +18,17 @@ class AngelinProxy(Thread):
 		418: ("418 I'm a teapot", 235, "<html><body><h2>Erro 418</h2><h1>Sou um bule de chá, não um proxy</h1><p><small>Na verdade algum erro "
 		                               "inesperado aconteceu e não sei o que fazer :(</small></p><p><small>Tô vazando, agora é com você! Boa "
 		                               "sorte!</small></p></body></html>"),
-		504: ("503 ", 74, "<html><body><h2>Erro 504</h2><h1>Servidor não respondeu</h1></body></html>")
+		504: ("504 Gateway Timeout", 74, "<html><body><h2>Erro 504</h2><h1>Servidor não respondeu</h1></body></html>")
 	}
 
-	def __init__(self, conn, addr):
+	def __init__(self, conn, addr, max_buffer_size=4096):
 		self.conn = conn
 		self.addr = addr
 		self.client_headers = {}
 		self.client_request = None
 		self.server_headers = {}
 		self.server_response = None
+		self.max_buffer_size = max_buffer_size
 		super().__init__()
 
 	@staticmethod
@@ -39,7 +40,7 @@ class AngelinProxy(Thread):
 	def parse_headers(self, headers, is_client):
 		fields = headers.decode('ISO-8859-1').split('\r\n\r\n')[0].split('\r\n')
 		output = self.client_headers if is_client else self.server_headers
-		output["Request"] = fields[0]
+		output["First-Line"] = fields[0]
 		fields = fields[1:]
 		for field in fields:
 			key, value = field.split(':', 1)
@@ -50,7 +51,7 @@ class AngelinProxy(Thread):
 
 	def run(self):
 		try:
-			self.client_request = self.conn.recv(8192)
+			self.client_request = self.conn.recv(self.max_buffer_size)
 
 			# ---------------------------------------------- #
 			# Check for "monitorando" to display access blocked
@@ -75,7 +76,7 @@ class AngelinProxy(Thread):
 				port = int(port)
 			else:
 				url = self.client_headers["Host"]
-				port = 443 if "https" in self.client_headers["Request"] else 80
+				port = 80
 
 			try:
 				server_ip = socket.gethostbyname(url)
@@ -117,15 +118,27 @@ class AngelinProxy(Thread):
 				return
 
 			headers, extra = data.split(b"\r\n\r\n", 1)
-			self.parse_headers(headers, False)
+			try:
+				self.parse_headers(headers, False)
+				print("Server response status: ", self.server_headers["First-Line"].split(' ', 1)[1])
+			except Exception:
+				self.conn.send(AngelinProxy._build_error(504))
+				self.conn.close()
+				return
 
 			try:
 				if "Content-Length" in self.server_headers:
-					data += server_conn.recv(int(self.server_headers["Content-Length"]) - len(extra))
+					to_receive = int(self.server_headers["Content-Length"]) - len(extra)
+					while to_receive > 0:
+						buffer = server_conn.recv(min(self.max_buffer_size, to_receive))
+						data += buffer
+						to_receive -= len(buffer)
+
 					self.conn.sendall(data)
 				else:
+					self.conn.sendall(data)
 					while True:
-						buffer = server_conn.recv(4096)
+						buffer = server_conn.recv(self.max_buffer_size)
 						if not buffer:
 							break
 						self.conn.sendall(buffer)
@@ -148,3 +161,4 @@ class AngelinProxy(Thread):
 				self.conn.close()
 
 			return
+
