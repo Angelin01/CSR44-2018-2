@@ -45,7 +45,7 @@ class AngelinProxy(Thread):
 			key, value = field.split(':', 1)
 			output[key] = value
 
-		if is_client and not output.__contains__("Host"):
+		if is_client and not "Host" in output:
 			raise ValueError("Malfored Request")
 
 	def run(self):
@@ -69,9 +69,6 @@ class AngelinProxy(Thread):
 				self.conn.close()
 				return
 
-			print(self.client_request)
-			print(self.server_headers)
-
 			self.client_headers["Host"] = self.client_headers["Host"].strip()
 			if ':' in self.client_headers["Host"]:
 				url, port = self.client_headers["Host"].rsplit(':', 1)
@@ -82,7 +79,7 @@ class AngelinProxy(Thread):
 
 			try:
 				server_ip = socket.gethostbyname(url)
-				server_conn = socket.create_connection((url, 80), timeout=5)
+				server_conn = socket.create_connection((url, port), timeout=1)
 			except socket.timeout:
 				self.conn.send(AngelinProxy._build_error(504))
 				self.conn.close()
@@ -102,19 +99,40 @@ class AngelinProxy(Thread):
 				self.conn.close()
 				return
 
+			data = b""
 			while True:
 				try:
-					answer = server_conn.recv(8192)
+					data += server_conn.recv(64)
 				except socket.timeout:
-					self.conn.send(answer)
-					self.conn.close()
-					server_conn.close()
-					return
+					pass
 
-				if(len(answer) > 0):
-					self.conn.send(answer)
-				else:
+				# Received empty data, connection is done
+				if not data:
 					break
+
+				# Keep looping until we find the end of the headers
+				if b"\r\n\r\n" not in data:
+					continue
+
+				headers, extra = data.split(b"\r\n\r\n", 1)
+				self.parse_headers(headers, False)
+
+				try:
+					if "Content-Length" in self.server_headers:
+						data += server_conn.recv(int(self.server_headers["Content-Length"]) - len(extra))
+					else:
+						while True:
+							buffer = server_conn.recv(64)
+							if not buffer:
+								break
+							data += buffer
+				except socket.timeout:
+					pass
+
+				print("Sending to client", len(data), "bytes")
+				print(data)
+				self.conn.sendall(data)
+				data = b""
 
 			server_conn.close()
 			self.conn.close()
@@ -125,7 +143,7 @@ class AngelinProxy(Thread):
 			# Oh no, something weird happened
 			print("Error, stopping")
 			print("Args:", e.args)
-			print(e.with_traceback())
+			print(e)
 
 			if self.client_request:
 				self.conn.send(AngelinProxy._build_error(418))
