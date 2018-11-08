@@ -32,6 +32,7 @@ class AngelinProxy(Thread):
 
 	@staticmethod
 	def _build_error(code):
+		print("BUILDING ERROR CODE", code)
 		error = AngelinProxy._error_values.get(code) or AngelinProxy._error_values.get(418)
 		return AngelinProxy._basic_error_format.format(error[0], datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S"), error[1], error[2]).encode('ISO-8859-1')
 
@@ -43,6 +44,9 @@ class AngelinProxy(Thread):
 		for field in fields:
 			key, value = field.split(':', 1)
 			output[key] = value
+
+		if is_client and not output.__contains__("Host"):
+			raise ValueError("Malfored Request")
 
 	def run(self):
 		try:
@@ -60,10 +64,13 @@ class AngelinProxy(Thread):
 			# Find and connect to requested host
 			try:
 				self.parse_headers(self.client_request, True)
-			except ValueError:  # Malformed request
+			except Exception:  # Malformed request
 				self.conn.send(AngelinProxy._build_error(400))
 				self.conn.close()
 				return
+
+			print(self.client_request)
+			print(self.server_headers)
 
 			self.client_headers["Host"] = self.client_headers["Host"].strip()
 			if ':' in self.client_headers["Host"]:
@@ -118,7 +125,7 @@ class AngelinProxy(Thread):
 			# Oh no, something weird happened
 			print("Error, stopping")
 			print("Args:", e.args)
-			print(e)
+			print(e.with_traceback())
 
 			if self.client_request:
 				self.conn.send(AngelinProxy._build_error(418))
