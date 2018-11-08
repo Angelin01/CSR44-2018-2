@@ -5,11 +5,11 @@ from datetime import datetime
 
 class AngelinProxy(Thread):
 	_basic_error_format = ("HTTP/1.1 {}\r\n" +
-		                  datetime.utcnow().strftime("Date: %a, %d %b %Y %H:%M:%S") + " GMT\r\n" +
-		                  "Server: AngelinProxy/1.0\r\n" +
-		                  "Content-Length: {}\r\n" +
-		                  "\r\n" +
-		                  "{}")
+	                       "Date: {} GMT\r\n" +
+	                       "Server: AngelinProxy/1.0\r\n" +
+	                       "Content-Length: {}\r\n" +
+	                       "\r\n" +
+	                       "{}")
 
 	_error_values = {
 		400: ("400 Bad Request", 75, "<html><body><h2>Erro 400</h2><h1>Requisição Mal Formada!</h1></body></html>"),
@@ -33,7 +33,7 @@ class AngelinProxy(Thread):
 	@staticmethod
 	def _build_error(code):
 		error = AngelinProxy._error_values.get(code) or AngelinProxy._error_values.get(418)
-		return AngelinProxy._basic_error_format.format(error[0], error[1], error[2]).encode('ISO-8859-1')
+		return AngelinProxy._basic_error_format.format(error[0], datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S"), error[1], error[2]).encode('ISO-8859-1')
 
 	def parse_headers(self, message, is_client):
 		fields = message.decode('ISO-8859-1').split('\r\n\r\n')[0].split('\r\n')
@@ -43,7 +43,6 @@ class AngelinProxy(Thread):
 		for field in fields:
 			key, value = field.split(':', 1)
 			output[key] = value
-
 
 	def run(self):
 		try:
