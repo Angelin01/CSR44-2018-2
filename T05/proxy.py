@@ -36,8 +36,8 @@ class AngelinProxy(Thread):
 		error = AngelinProxy._error_values.get(code) or AngelinProxy._error_values.get(418)
 		return AngelinProxy._basic_error_format.format(error[0], datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S"), error[1], error[2]).encode('ISO-8859-1')
 
-	def parse_headers(self, message, is_client):
-		fields = message.decode('ISO-8859-1').split('\r\n\r\n')[0].split('\r\n')
+	def parse_headers(self, headers, is_client):
+		fields = headers.decode('ISO-8859-1').split('\r\n\r\n')[0].split('\r\n')
 		output = self.client_headers if is_client else self.server_headers
 		output["Request"] = fields[0]
 		fields = fields[1:]
@@ -63,7 +63,7 @@ class AngelinProxy(Thread):
 			# ---------------------------------------------- #
 			# Find and connect to requested host
 			try:
-				self.parse_headers(self.client_request, True)
+				self.parse_headers(self.client_request.split(b'\r\n\r\n')[0], True)
 			except Exception:  # Malformed request
 				self.conn.send(AngelinProxy._build_error(400))
 				self.conn.close()
